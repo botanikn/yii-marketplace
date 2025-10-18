@@ -2,6 +2,8 @@
 
 namespace app\services;
 
+use Yii;
+
 class GoodService
 {
     public function getGoodsJoinCatJoinCart($query) {
@@ -34,7 +36,7 @@ class GoodService
         $currentGood->name = $model->name;
         $currentGood->description = $model->description;
         $currentGood->price = $model->price;
-        $currentGood->updated_by = Yii::$app->identity->id;
+        $currentGood->updated_by = Yii::$app->user->id;
         $currentGood->categoryID = $model->categoryID;
         $currentGood->updateTime = date('Y-m-d H:i:s', time());
 
