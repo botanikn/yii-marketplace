@@ -11,7 +11,8 @@ use Yii;
 use yii\helpers\ArrayHelper;
 use yii\db\Query;
 
-class GoodController extends UserController {
+class GoodController extends UserController
+{
 
     protected $goodModel;
     protected $goodForm;
@@ -33,7 +34,8 @@ class GoodController extends UserController {
         $this->cartService = new CartService();
     }
 
-    public function actionReadall() {
+    public function actionReadall()
+    {
 
         // Вызов сервиса по поиску всех категорий товаров
         $allGoodsWithCategories = $this->goodService->getGoodsJoinCatJoinCart($this->query);
@@ -43,7 +45,8 @@ class GoodController extends UserController {
         return $this->render('readall', ['allGoods' => $allGoodsWithCategories, 'allItemsInCarts' => $allItemsInCarts]);
     }
 
-    public function actionReadone($id) {
+    public function actionReadone($id)
+    {
         $this->actionAppropUser(1);
 
         // Нахожу необходимый товар
@@ -69,7 +72,8 @@ class GoodController extends UserController {
         return $this->render('readone', ['good' => $this->goodForm, 'items' => $items]);
     }
 
-    public function actionDeleteone($id) {
+    public function actionDeleteone($id)
+    {
 
         $currentGood = $this->goodModel::findOne($id);
         try {
@@ -83,18 +87,33 @@ class GoodController extends UserController {
         }
     }
 
-    public function actionCreate() {
+    public function actionCreate()
+    {
         $this->actionAppropUser(1);
         $model = $this->goodForm;
 
-        // Если в модель были загружены и провалидированы данные, они вносятся в activeRecord, затем сохраняются
         if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-
             // Вызов сервиса, который создаёт новый товар
-            $good = $this->goodService->createGoods($model, $this->goodModel);
+            $result = $this->goodService->createGoods($model, $this->goodModel);
 
-            if($good->save()) {
-                $this->redirect(['good/readall']);
+            if ($result['success']) {
+                Yii::$app->session->setFlash('success', 'Товар успешно создан!');
+                return $this->redirect(['good/readall']);
+            } else {
+                // Обработка ошибок валидации
+                if (isset($result['errors'])) {
+                    foreach ($result['errors'] as $attribute => $errors) {
+                        foreach ($errors as $error) {
+                            Yii::$app->session->addFlash('error', $error);
+                        }
+                    }
+                } // Обработка кастомных сообщений об ошибках
+                elseif (isset($result['message'])) {
+                    Yii::$app->session->addFlash('error', $result['message']);
+                } // Общая ошибка
+                else {
+                    Yii::$app->session->addFlash('error', 'Произошла ошибка при создании товара.');
+                }
             }
         }
 
@@ -103,5 +122,4 @@ class GoodController extends UserController {
 
         return $this->render("create", ["model" => $model, "items" => $items]);
     }
-
 }

@@ -47,18 +47,52 @@ class GoodService
     }
 
     public function createGoods($model, $activeForm) {
+        $transaction = Yii::$app->db->beginTransaction();
+        
+        try {
+            $activeForm->name = $model->name;
+            $activeForm->description = $model->description;
+            $activeForm->price = $model->price;
+            $activeForm->categoryID = $model->categoryID;
+            $activeForm->createTime = date('Y-m-d H:i:s', time());
+            $activeForm->updateTime = date('Y-m-d H:i:s', time());
 
-        $activeForm->name = $model->name;
-        $activeForm->description = $model->description;
-        $activeForm->price = $model->price;
-        $activeForm->categoryID = $model->categoryID;
-        $activeForm->createTime = date('Y-m-d H:i:s', time());
-        $activeForm->updateTime = date('Y-m-d H:i:s', time());
-
-        if($activeForm->save()) {
-            return $activeForm;
+            if ($activeForm->save()) {
+                $transaction->commit();
+                return [
+                    'success' => true,
+                    'model' => $activeForm
+                ];
+            } else {
+                $transaction->rollBack();
+                return [
+                    'success' => false,
+                    'errors' => $activeForm->getErrors()
+                ];
+            }
+        } catch (\yii\db\IntegrityException $e) {
+            $transaction->rollBack();
+            
+            // Check for unique constraint violation
+            if (strpos($e->getMessage(), 'duplicate key value violates unique constraint') !== false) {
+                return [
+                    'success' => false,
+                    'message' => 'Товар с таким названием уже существует.'
+                ];
+            }
+            
+            // For other database errors
+            return [
+                'success' => false,
+                'message' => 'Произошла ошибка при сохранении товара.'
+            ];
+        } catch (\Exception $e) {
+            $transaction->rollBack();
+            return [
+                'success' => false,
+                'message' => 'Произошла непредвиденная ошибка.'
+            ];
         }
-        else return null;
     }
 
 }
